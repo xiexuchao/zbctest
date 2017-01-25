@@ -42,7 +42,7 @@ int smr_open(char *path,struct zbc_device *dev)
 	struct zbc_device_info info;
     enum zbc_reporting_options ro = ZBC_RO_ALL;
     
-    ret=zbc_open(path,O_RNONLY,&dev);
+    ret=zbc_open(path,O_RDONLY,&dev);
     if(ret != 0)
     {
     	printf("Open Device Failure!\n");
