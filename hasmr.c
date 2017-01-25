@@ -1,32 +1,40 @@
+#include <libzbc/zbc.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
 
-#include <libzbc/zbc.h>
 
-int smr_open(char *path,struct zbc_device *dev);
-int smr_close(struct zbc_device *dev);
+struct smr_info{
+    struct zbc_device *dev;
+};
+
+struct smr_info *smr_open(char *path,struct smr_info *smr);
+int smr_close(struct smr_info *smr);
+int smr_report(struct smr_info *smr,unsigned int index);
 
 int main()
 {
 	int ret;
-	struct zbc_device *dev;
+    struct smr_info *smr;
+//	struct zbc_device *dev;
 	char path[64]="/dev/sdb";
 	
-	ret=smr_open(path,dev);
+    smr=(struct smr_info *)malloc(sizeof(struct smr_info));
+
+	smr=smr_open(path,smr);
+    
+    ret=smr_report(smr,1000);
 	if(ret != 1)
 	{
-		printf("OPEN Failure..\n");
+		printf("REPORT Failure..\n");
 		exit(-1);
 	}
-	
-	
-	
-	
-	
-	ret=smr_close(dev);
+    printf("outing smr_report()\n");	
+
+	ret=smr_close(smr);
 	if(ret != 1)
 	{
 		printf("CLOSE Failure..\n");
@@ -38,24 +46,25 @@ int main()
 
 
 
-int smr_open(char *path,struct zbc_device *dev)
+struct smr_info *smr_open(char *path,struct smr_info *smr)
 {
 	int ret = 1;
 	struct zbc_device_info info;
     enum zbc_reporting_options ro = ZBC_RO_ALL;
     
-    ret=zbc_open(path,O_RDONLY,&dev);
+    ret=zbc_open(path,O_RDONLY,&smr->dev);
     if(ret != 0)
     {
     	printf("Open Device Failure!\n");
-    	return -1;
+    	exit(-1);
     }
     
-    ret=zbc_get_device_info(dev,&info);
+    ret=zbc_get_device_info(smr->dev,&info);
     if(ret < 0)
     {
     	printf("Get Device Info Failure!\n");
-    	return -1;
+    	//return -1;
+    	exit(-1);
     }
     
     printf("Device %s: %s\n",path,info.zbd_vendor_id);
@@ -63,16 +72,17 @@ int smr_open(char *path,struct zbc_device *dev)
     printf("    %llu logical blocks of %u B\n",(unsigned long long) info.zbd_logical_blocks,(unsigned int) info.zbd_logical_block_size);
     printf("    %llu physical blocks of %u B\n",(unsigned long long) info.zbd_physical_blocks,(unsigned int) info.zbd_physical_block_size);
     printf("    %.03F GB capacity\n",(double) (info.zbd_physical_blocks * info.zbd_physical_block_size) / 1000000000);
-
-	return 1;
+    
+	return smr;
 }
 
 
-int smr_close(struct zbc_device *dev)
+int smr_close(struct smr_info *smr)
 {
-	if(dev)
+	if(smr->dev)
 	{
-		zbc_close(dev);
+		zbc_close(smr->dev);
+        printf("CLOSE SUCCESS!\n");
 		return 1;
 	}
 	printf("CLOSE Failure..\n");
@@ -80,21 +90,15 @@ int smr_close(struct zbc_device *dev)
 }
 
 
-int smr_report(struct zbc_device *dev,unsigned int index)
+int smr_report(struct smr_info *smr,unsigned int index)
 {
 	int ret;
 	unsigned long long lba=0;
     enum zbc_reporting_options ro=ZBC_RO_ALL;
-    zbc_zone_t *z, *zones=NULL;
-    unsigned int nr_zones=0;
+    struct zbc_zone *z, *zones=NULL;
+    int nr_zones=29000;
     
-    ret=zbc_report_nr_zones(dev,lba,ro,&nr_zones);
-    if(ret != 0)
-    {
-    	printf("Report Zone Number Failure!\n");
-    	return -1;
-    }
-    printf("-+-nr_zones=%d\n",nr_zones);
+    printf("entering smr_report()\n");
     
     if(index > nr_zones)
     {
@@ -110,17 +114,24 @@ int smr_report(struct zbc_device *dev,unsigned int index)
     }
     memset(zones, 0, sizeof(zbc_zone_t)*nr_zones);
     
-    ret=zbc_report_zones(dev,lba,ro,zones,&nr_zones);
+    printf("1111--%d\n",ret);
+    if(!smr->dev)
+    {
+        printf("8888\n");
+    }
+    ret=zbc_report_zones(smr->dev,lba,ro,zones,&nr_zones);
+    printf("2222--%d\n",ret);
     if(ret!=0)
     {
     	printf("Report Zone Failure!\n");
     	return -1;
     }
+    printf("3333\n");
     
     z=&zones[index];
     if ( zbc_zone_conventional(z) ) {
             printf("Zone %05d: type 0x%x (%s), cond 0x%x (%s), LBA %llu, %llu sectors, wp N/A\n",
-                   i,
+                   index,
                    zbc_zone_type(z),
                    zbc_zone_type_str(zbc_zone_type(z)),
                    zbc_zone_condition(z),
@@ -129,7 +140,7 @@ int smr_report(struct zbc_device *dev,unsigned int index)
                    zbc_zone_length(z));
         } else {
             printf("Zone %05d: type 0x%x (%s), cond 0x%x (%s), need_reset %d, non_seq %d, LBA %llu, %llu sectors, wp %llu\n",
-                   i,
+                   index,
                    zbc_zone_type(z),
                    zbc_zone_type_str(zbc_zone_type(z)),
                    zbc_zone_condition(z),
@@ -141,7 +152,11 @@ int smr_report(struct zbc_device *dev,unsigned int index)
                    zbc_zone_wp_lba(z));
         }
         
-        return 1;
+    if(zones)
+    {
+        free(zones);
+    }
+    return 1;
 
 }
 
