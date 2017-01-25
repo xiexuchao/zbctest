@@ -1,9 +1,10 @@
+#include <libzbc/zbc.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <libzbc/zbc.h>
 
 int main()
 {
@@ -12,7 +13,6 @@ int main()
     
     struct zbc_zone *z,*zones=NULL;
     int i, ret=1;
-    char *path;
     enum zbc_reporting_options ro = ZBC_RO_ALL;
     char path[64]="/dev/sdb";
     /*
@@ -33,7 +33,8 @@ int main()
 		return 1;
 	}
 	zbc_get_device_info(dev,&info);
-	zbc_print_device_info(&info,stdout);
+    printf("disk model %d\n",(&info)->zbd_model);
+//	zbc_print_device_info(&info,stdout);
 	
 	
 	
