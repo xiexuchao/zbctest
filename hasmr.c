@@ -13,7 +13,7 @@ struct smr_info{
 
 struct smr_info *smr_open(char *path,struct smr_info *smr);
 int smr_close(struct smr_info *smr);
-int smr_report(struct smr_info *smr,unsigned int index);
+struct smr_info *smr_report(struct smr_info *smr,unsigned int index);
 
 int main()
 {
@@ -31,7 +31,6 @@ int main()
 
 	smr=smr_open(path,smr);
     smr=smr_report(smr,1000);
-    printf("\n\nouting smr_report()\n\n");	
 	smr=smr_report(smr,500);
 	
 	ret=smr_close(smr);
@@ -93,15 +92,13 @@ struct smr_info *smr_report(struct smr_info *smr,unsigned int index)
     struct zbc_zone *z, *zones=NULL;
     int nr_zones=0;
     
-    printf("entering smr_report()\n");
-    
     ret = zbc_report_nr_zones(smr->dev, lba, ro, &nr_zones);
     if ( ret != 0 )
     {
     	printf("Report Number of Zones ERROR!\n");
     	exit(-1);
     }
-    printf("nr_zones=%d\n",nr_zones);
+    //printf("nr_zones=%d\n",nr_zones);
     
     if(index > nr_zones)
     {
@@ -117,19 +114,12 @@ struct smr_info *smr_report(struct smr_info *smr,unsigned int index)
     }
     memset(zones, 0, sizeof(zbc_zone_t)*nr_zones);
     
-    printf("1111--%d\n",ret);
-    if(!smr->dev)
-    {
-        printf("8888\n");
-    }
     ret=zbc_report_zones(smr->dev,lba,ro,zones,&nr_zones);
-    printf("2222--%d\n",ret);
     if(ret!=0)
     {
     	printf("Report Zone Failure!\n");
-    	return -1;
+		exit(-1);
     }
-    printf("3333\n");
     
     z=&zones[index];
     if ( zbc_zone_conventional(z) ) 
