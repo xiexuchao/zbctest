@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <libzbc/zbc.h>
 
 #include <stdio.h>
@@ -6,7 +7,6 @@
 #include <string.h>
 #include <errno.h>
 
-#define _GNU_SOURCE
 #include <sys/time.h>
 #include <aio.h>
 #include <fcntl.h>
@@ -26,7 +26,6 @@ int main()
     struct zbc_device *dev;
     
     struct zbc_zone *z,*zones=NULL;
-    int i, ret=1;
     char path[64]="/dev/sdb";
     
     enum zbc_reporting_options ro = ZBC_RO_ALL;
@@ -49,7 +48,7 @@ int main()
 		buf[i]=(char)(rand()%26+65);
 	}
 
-	fd=open(path,O_DIRECT | O_SYNC | O_RDWR);
+	fd=open(path, O_DIRECT | O_SYNC | O_RDWR);
 	if(fd<0)
 	{
 		printf("Open Device Error!\n");
@@ -60,11 +59,11 @@ int main()
     memset(cb,0,sizeof(struct aiocb));
 	cb->aio_fildes=fd;
 	cb->aio_buf=buf;
-	cb->aio_nbytes=512;
-	cb->aio_offset=10240;
+	cb->aio_nbytes=512*1000;
+	cb->aio_offset=(long long)33554432*512;
 	
 	ret=aio_write(cb);
-	if(ret<0)
+	if(ret)
 	{
 		printf("aio_write error!\n");
 		exit(-1);
@@ -110,7 +109,7 @@ int main()
     }
 
         printf("%u / %u zone%s:\n", nz, nr_zones, (nz > 1) ? "s" : "");
-    for(i = 0; i < (int)nz; i++) {
+    for(i = 0; i <=65; i++) {
                 z = &zones[i];
         if ( zbc_zone_conventional(z)  ) {
                         printf("Zone %05d: type 0x%x (%s), cond 0x%x (%s), LBA %llu, %llu sectors, wp N/A\n",
