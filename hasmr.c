@@ -8,6 +8,7 @@
 
 
 struct smr_info{
+    long long wp;
     struct zbc_device *dev;
 };
 
@@ -30,8 +31,12 @@ int main()
     memset(smr, 0, sizeof(struct smr_info));
 
 	smr=smr_open(path,smr);
+	smr=smr_report(smr,50);
+    printf("wp=%lld \n",smr->wp);
     smr=smr_report(smr,1000);
+    printf("wp=%lld \n",smr->wp);
 	smr=smr_report(smr,500);
+    printf("wp=%lld \n",smr->wp);
 	
 	ret=smr_close(smr);
 
@@ -132,6 +137,7 @@ struct smr_info *smr_report(struct smr_info *smr,unsigned int index)
 				   zbc_zone_condition_str(zbc_zone_condition(z)),
 				   zbc_zone_start_lba(z),
 				   zbc_zone_length(z));                
+        smr->wp=-1;  
     } else {
 		printf("Zone %05d: type 0x%x (%s), cond 0x%x (%s), need_reset %d, non_seq %d, LBA %llu, %llu sectors, wp %llu\n",
        			   index,
@@ -144,8 +150,9 @@ struct smr_info *smr_report(struct smr_info *smr,unsigned int index)
                    zbc_zone_start_lba(z),
                    zbc_zone_length(z),
                    zbc_zone_wp_lba(z));
+        smr->wp=zbc_zone_wp_lba(z);  
 	}
-        
+
     if(zones)
     {
         free(zones);
