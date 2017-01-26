@@ -51,7 +51,7 @@ struct smr_info *smr_open(char *path,struct smr_info *smr)
 	int ret = 1;
 	struct zbc_device_info info;
     enum zbc_reporting_options ro = ZBC_RO_ALL;
-    
+
     ret=zbc_open(path,O_RDONLY,&smr->dev);
     if(ret != 0)
     {
