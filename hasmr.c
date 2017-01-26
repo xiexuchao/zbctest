@@ -15,6 +15,7 @@ struct smr_info{
 struct smr_info *smr_open(char *path,struct smr_info *smr);
 int smr_close(struct smr_info *smr);
 struct smr_info *smr_report(struct smr_info *smr,unsigned int index);
+struct smr_info *smr_write(struct smr_info *smr,unsigned int zone,long long lba,unsigned int size);
 
 int main()
 {
