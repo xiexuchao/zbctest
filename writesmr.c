@@ -19,8 +19,9 @@
 int main()
 {
 	int i,ret,fd;
-	struct aiocb cb;
+	struct aiocb *cb;
 	char *buf;
+    char path[64]="/dev/sdb";
 	
 	if (posix_memalign((void**)&buf, MEM_ALIGN, LARGEST_REQUEST_SIZE * BYTE_PER_BLOCK))
 	{
@@ -33,19 +34,21 @@ int main()
 		buf[i]=(char)(rand()%26+65);
 	}
 
-	fd=open("/dev/sdb",O_DIRECT | O_SYNC | O_RDWR);
+	fd=open(path,O_DIRECT | O_SYNC | O_RDWR);
 	if(fd<0)
 	{
 		printf("Open Device Error!\n");
 		exit(-1);
 	}
 	
-	cb.aio_fildes=fd;
-	cb.aio_buf=buf;
-	cb.aio_nbytes=512;
-	cb.aio_offset=0;
+    cb=(struct aiocb *)malloc(sizeof(struct aiocb));
+    memset(cb,0,sizeof(struct aiocb));
+	cb->aio_fildes=fd;
+	cb->aio_buf=buf;
+	cb->aio_nbytes=512;
+	cb->aio_offset=10240;
 	
-	ret=aio_write(&cb);
+	ret=aio_write(cb);
 	if(ret<0)
 	{
 		printf("aio_write error!\n");
