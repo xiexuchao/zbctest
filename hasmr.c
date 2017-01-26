@@ -19,27 +19,22 @@ int main()
 {
 	int ret;
     struct smr_info *smr;
-//	struct zbc_device *dev;
 	char path[64]="/dev/sdb";
 	
     smr=(struct smr_info *)malloc(sizeof(struct smr_info));
+    if (!smr) 
+    {
+		printf("smr malloc Error!\n");
+		exit(-1);
+    }
+    memset(smr, 0, sizeof(struct smr_info));
 
 	smr=smr_open(path,smr);
-    
-    ret=smr_report(smr,1000);
-	if(ret != 1)
-	{
-		printf("REPORT Failure..\n");
-		exit(-1);
-	}
-    printf("outing smr_report()\n");	
-
+    smr=smr_report(smr,1000);
+    printf("\n\nouting smr_report()\n\n");	
+	smr=smr_report(smr,500);
+	
 	ret=smr_close(smr);
-	if(ret != 1)
-	{
-		printf("CLOSE Failure..\n");
-		exit(-1);
-	}
 
 	return 1;
 }
@@ -63,7 +58,6 @@ struct smr_info *smr_open(char *path,struct smr_info *smr)
     if(ret < 0)
     {
     	printf("Get Device Info Failure!\n");
-    	//return -1;
     	exit(-1);
     }
     
@@ -82,6 +76,7 @@ int smr_close(struct smr_info *smr)
 	if(smr->dev)
 	{
 		zbc_close(smr->dev);
+		free(smr);
         printf("CLOSE SUCCESS!\n");
 		return 1;
 	}
@@ -90,27 +85,35 @@ int smr_close(struct smr_info *smr)
 }
 
 
-int smr_report(struct smr_info *smr,unsigned int index)
+struct smr_info *smr_report(struct smr_info *smr,unsigned int index)
 {
 	int ret;
 	unsigned long long lba=0;
     enum zbc_reporting_options ro=ZBC_RO_ALL;
     struct zbc_zone *z, *zones=NULL;
-    int nr_zones=29000;
+    int nr_zones=0;
     
     printf("entering smr_report()\n");
+    
+    ret = zbc_report_nr_zones(smr->dev, lba, ro, &nr_zones);
+    if ( ret != 0 )
+    {
+    	printf("Report Number of Zones ERROR!\n");
+    	exit(-1);
+    }
+    printf("nr_zones=%d\n",nr_zones);
     
     if(index > nr_zones)
     {
     	printf("Index Error!\n");
-    	return -1;
+    	exit(-1);
     }
     
     zones=(zbc_zone_t *)malloc(sizeof(zbc_zone_t)*nr_zones);
     if (!zones) 
     {
 		printf("malloc Error!\n");
-		return -1;
+		exit(-1);
     }
     memset(zones, 0, sizeof(zbc_zone_t)*nr_zones);
     
@@ -129,19 +132,20 @@ int smr_report(struct smr_info *smr,unsigned int index)
     printf("3333\n");
     
     z=&zones[index];
-    if ( zbc_zone_conventional(z) ) {
-            printf("Zone %05d: type 0x%x (%s), cond 0x%x (%s), LBA %llu, %llu sectors, wp N/A\n",
-                   index,
-                   zbc_zone_type(z),
-                   zbc_zone_type_str(zbc_zone_type(z)),
-                   zbc_zone_condition(z),
-                   zbc_zone_condition_str(zbc_zone_condition(z)),
-                   zbc_zone_start_lba(z),
-                   zbc_zone_length(z));
-        } else {
-            printf("Zone %05d: type 0x%x (%s), cond 0x%x (%s), need_reset %d, non_seq %d, LBA %llu, %llu sectors, wp %llu\n",
-                   index,
-                   zbc_zone_type(z),
+    if ( zbc_zone_conventional(z) ) 
+    {
+    	printf("Zone %05d: type 0x%x (%s), cond 0x%x (%s), LBA %llu, %llu sectors, wp N/A\n",
+				   index,
+				   zbc_zone_type(z),
+				   zbc_zone_type_str(zbc_zone_type(z)),
+				   zbc_zone_condition(z),
+				   zbc_zone_condition_str(zbc_zone_condition(z)),
+				   zbc_zone_start_lba(z),
+				   zbc_zone_length(z));                
+    } else {
+		printf("Zone %05d: type 0x%x (%s), cond 0x%x (%s), need_reset %d, non_seq %d, LBA %llu, %llu sectors, wp %llu\n",
+       			   index,
+			       zbc_zone_type(z),
                    zbc_zone_type_str(zbc_zone_type(z)),
                    zbc_zone_condition(z),
                    zbc_zone_condition_str(zbc_zone_condition(z)),
@@ -150,14 +154,13 @@ int smr_report(struct smr_info *smr,unsigned int index)
                    zbc_zone_start_lba(z),
                    zbc_zone_length(z),
                    zbc_zone_wp_lba(z));
-        }
+	}
         
     if(zones)
     {
         free(zones);
     }
-    return 1;
-
+    return smr;
 }
 
 
