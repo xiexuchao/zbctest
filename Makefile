@@ -1,9 +1,5 @@
-all:
-	gcc -c test.c
-	gcc -o main test.o /usr/lib/libzbc.so -lrt
-test:
-	gcc -c writesmr.c
-	gcc -o main writesmr.o -lrt
+All:
+	gcc -c hasmr.c
+	gcc -o main hasmr.o /usr/lib/libzbc.so
 clean:
-	rm -rf main
-	rm -rf *.o
+	rm *.o main
